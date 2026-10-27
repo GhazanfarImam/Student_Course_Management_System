@@ -16,7 +16,7 @@ public class DBConnection {
         HikariConfig config = new HikariConfig();
 
         config.setJdbcUrl(
-                "jdbc:postgresql://localhost:5432/student_course_db"
+                "jdbc:postgresql://localhost:5432/student_course_db?escapeSyntaxCallMode=callIfNoReturn"
         );
         config.setUsername("postgres");
         config.setPassword("root");

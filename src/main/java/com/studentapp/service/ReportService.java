@@ -2,7 +2,11 @@
 package com.studentapp.service;
 
 import com.studentapp.util.DBConnection;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class ReportService {
 
@@ -31,41 +35,52 @@ public class ReportService {
     }
 
     // PostgreSQL stored procedure using refcursor
+
+
     public void displayStudentCourses(int studentId) {
-        String call = "{ call get_student_courses(?, ?) }";
+
+        String cursorName = "student_courses";
 
         try (Connection con = DBConnection.getConnection()) {
             con.setAutoCommit(false);
 
             try {
-                try (CallableStatement cs = con.prepareCall(call)) {
-                    cs.setInt(1, studentId);
-                    cs.setString(2, "student_courses");
-                    cs.registerOutParameter(2, Types.OTHER);
-                    cs.execute();
+                String callSql =
+                        "CALL get_student_courses(?, CAST(? AS refcursor))";
+
+                try (PreparedStatement ps = con.prepareStatement(callSql)) {
+                    ps.setInt(1, studentId);
+                    ps.setString(2, cursorName);
+                    ps.execute();
                 }
 
                 try (Statement st = con.createStatement();
                      ResultSet rs = st.executeQuery(
-                             "FETCH ALL FROM student_courses")) {
+                             "FETCH ALL FROM " + cursorName)) {
 
                     boolean found = false;
 
                     while (rs.next()) {
                         found = true;
-                        System.out.printf(
-                                "Student: %s | Course: %s | Enrollment Date: %s%n",
-                                rs.getString("student_name"),
-                                rs.getString("course_name"),
-                                rs.getDate("enrollment_date")
-                        );
+
+                        System.out.println(
+                                "Student ID: " + rs.getInt("student_id"));
+                        System.out.println(
+                                "Student Name: " + rs.getString("student_name"));
+                        System.out.println(
+                                "Course ID: " + rs.getInt("course_id"));
+                        System.out.println(
+                                "Course Name: " + rs.getString("course_name"));
+                        System.out.println(
+                                "Enrollment Date: " +
+                                        rs.getDate("enrollment_date"));
+                        System.out.println("----------------------");
                     }
 
                     if (!found) {
                         System.out.println(
                                 "No enrolled courses found for student ID "
-                                        + studentId
-                        );
+                                        + studentId);
                     }
                 }
 
@@ -80,8 +95,9 @@ public class ReportService {
 
         } catch (SQLException e) {
             System.out.println(
-                    "Stored procedure call failed: " + e.getMessage()
-            );
+                    "Stored procedure call failed: " + e.getMessage());
         }
     }
+
+
 }
